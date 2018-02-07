@@ -290,21 +290,16 @@ public class JavaParserClassDeclaration extends AbstractClassDeclaration {
     @Override
     public List<ResolvedReferenceType> getAncestors() {
         List<ResolvedReferenceType> ancestors = new ArrayList<>();
-
-        // We want to avoid infinite recursion in case of Object having Object as ancestor
-        if (!(Object.class.getCanonicalName().equals(getQualifiedName()))) {
-            ResolvedReferenceType superclass = getSuperClass();
-            if (superclass != null) {
-                ancestors.add(superclass);
-            }
-            if (wrappedNode.getImplementedTypes() != null) {
-                for (ClassOrInterfaceType implemented : wrappedNode.getImplementedTypes()) {
-                    ResolvedReferenceType ancestor = toReferenceType(implemented);
-                    ancestors.add(ancestor);
-                }
+        ResolvedReferenceType superclass = getSuperClass();
+        if (superclass != null) {
+            ancestors.add(superclass);
+        }
+        if (wrappedNode.getImplementedTypes() != null) {
+            for (ClassOrInterfaceType implemented : wrappedNode.getImplementedTypes()) {
+                ResolvedReferenceType ancestor = toReferenceType(implemented);
+                ancestors.add(ancestor);
             }
         }
-
         return ancestors;
     }
 

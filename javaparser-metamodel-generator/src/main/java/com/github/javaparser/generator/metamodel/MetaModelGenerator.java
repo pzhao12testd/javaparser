@@ -140,7 +140,6 @@ public class MetaModelGenerator {
         add(UnknownType.class);
         add(VoidType.class);
         add(WildcardType.class);
-        add(VarType.class);
 
         add(ModuleRequiresStmt.class);
         add(ModuleExportsStmt.class);
