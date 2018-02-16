@@ -4,7 +4,7 @@ import com.github.javaparser.Problem;
 import com.github.javaparser.TokenRange;
 import com.github.javaparser.ast.nodeTypes.NodeWithTokenRange;
 
-import java.util.function.Consumer;
+import java.util.List;
 
 import static com.github.javaparser.utils.CodeGenerationUtils.f;
 
@@ -12,10 +12,10 @@ import static com.github.javaparser.utils.CodeGenerationUtils.f;
  * A simple interface where validators can report found problems.
  */
 public class ProblemReporter {
-    private final Consumer<Problem> problemConsumer;
+    private final List<Problem> problems;
 
-    public ProblemReporter(Consumer<Problem> problemConsumer) {
-        this.problemConsumer = problemConsumer;
+    public ProblemReporter(List<Problem> problems) {
+        this.problems = problems;
     }
 
     /**
@@ -29,6 +29,6 @@ public class ProblemReporter {
     }
 
     public void report(TokenRange range, String message, Object... args) {
-        problemConsumer.accept(new Problem(f(message, args), range, null));
+        problems.add(new Problem(f(message, args), range, null));
     }
 }

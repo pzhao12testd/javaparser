@@ -29,7 +29,6 @@ import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.metamodel.DerivedProperty;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -110,28 +109,28 @@ public interface NodeWithVariables<N extends Node> {
      * <br/>For <code>int[] a[][],b[],c[][];</code> this is int[][].
      */
     @DerivedProperty
-    default Optional<Type> getMaximumCommonType() {
-        return calculateMaximumCommonType(getVariables().stream().map(v -> v.getType()).collect(Collectors.toList()));
+    default Type getMaximumCommonType() {
+        return calculateMaximumCommonType(this.getVariables().stream().map(v -> v.getType()).collect(Collectors.toList()));
     }
 
-    static Optional<Type> calculateMaximumCommonType(List<Type> types) {
+    static Type calculateMaximumCommonType(List<Type> types) {
         // we use a local class because we cannot use an helper static method in an interface
         class Helper {
             // Conceptually: given a type we start from the Element Type and get as many array levels as indicated
             // From the implementation point of view we start from the actual type and we remove how many array
             // levels as needed to get the target level of arrays
             // It returns null if the type has less array levels then the desired target
-            private Optional<Type> toArrayLevel(Type type, int level) {
+            private Type toArrayLevel(Type type, int level) {
                 if (level > type.getArrayLevel()) {
-                    return Optional.empty();
+                    return null;
                 }
                 for (int i = type.getArrayLevel(); i > level; i--) {
                     if (!(type instanceof ArrayType)) {
-                        return Optional.empty();
+                        throw new AssertionError("The variables do not have a common type.");
                     }
                     type = ((ArrayType) type).getComponentType();
                 }
-                return Optional.of(type);
+                return type;
             }
         }
 
@@ -146,8 +145,8 @@ public interface NodeWithVariables<N extends Node> {
             // the pretty-printed string got for a node. We just check all them are the same and if they
             // are we just just is not null
             Object[] values = types.stream().map(v -> {
-                Optional<Type> t = helper.toArrayLevel(v, currentLevel);
-                return t.map(Node::toString).orElse(null);
+                Type t = helper.toArrayLevel(v, currentLevel);
+                return t == null ? null : t.toString();
             }).distinct().toArray();
             if (values.length == 1 && values[0] != null) {
                 level++;

@@ -21,7 +21,6 @@
 
 package com.github.javaparser;
 
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.comments.CommentsCollection;
 
 import java.util.List;
@@ -29,6 +28,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import static com.github.javaparser.utils.Utils.EOL;
+import static java.util.Collections.singletonList;
 
 /**
  * The results given when parsing with an instance of JavaParser.
@@ -51,6 +51,22 @@ public class ParseResult<T> {
         this.result = result;
         this.problems = problems;
         this.tokens = tokens;
+    }
+
+    /**
+     * Used when parsing failed completely with an exception.
+     */
+    ParseResult(Throwable throwable) {
+        this(null, singletonList(
+                new Problem(createMessage(throwable), null, throwable)), null, null);
+    }
+
+    private static String createMessage(Throwable throwable) {
+        String message = throwable.getMessage();
+        if (message == null) {
+            return throwable.getClass().getSimpleName();
+        }
+        return message;
     }
 
     /**
@@ -86,7 +102,7 @@ public class ParseResult<T> {
     /**
      * @return the complete list of tokens that were parsed, or empty if parsing failed completely.
      * @deprecated lists of tokens are now kept in every node.
-     * Calling this method is comparable to calling getResult().get().getTokenRange().get()
+     * Calling this method is comparable to calling getResult().get().getTokenRange().get() 
      */
     @Deprecated
     public Optional<List<JavaToken>> getTokens() {
@@ -117,12 +133,5 @@ public class ParseResult<T> {
             message.append(problem.toString()).append(EOL);
         }
         return message.toString();
-    }
-
-    /**
-     * A post processor that can be added to ParserConfiguration to add some processing right after parsing.
-     */
-    public interface PostProcessor {
-        void process(ParseResult<? extends Node> result, ParserConfiguration configuration);
     }
 }

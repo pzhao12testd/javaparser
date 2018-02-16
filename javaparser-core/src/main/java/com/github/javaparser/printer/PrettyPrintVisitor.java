@@ -44,7 +44,6 @@ import static com.github.javaparser.ast.Node.Parsedness.UNPARSABLE;
 import static com.github.javaparser.utils.PositionUtils.sortByBeginPosition;
 import static com.github.javaparser.utils.Utils.isNullOrEmpty;
 import static com.github.javaparser.utils.Utils.normalizeEolInTextBlock;
-import static com.github.javaparser.utils.Utils.trimTrailingSpaces;
 
 /**
  * Outputs the AST as formatted Java source code.
@@ -329,11 +328,10 @@ public class PrettyPrintVisitor implements VoidVisitor<Void> {
             boolean skippingLeadingEmptyLines = true;
             boolean prependEmptyLine = false;
             for (String line : lines) {
-                final String trimmedLine = line.trim();
-                if (trimmedLine.startsWith("*")) {
-                    line = trimmedLine.substring(1);
+                line = line.trim();
+                if (line.startsWith("*")) {
+                    line = line.substring(1).trim();
                 }
-                line = trimTrailingSpaces(line);
                 if (line.isEmpty()) {
                     if (!skippingLeadingEmptyLines) {
                         prependEmptyLine = true;
@@ -344,7 +342,7 @@ public class PrettyPrintVisitor implements VoidVisitor<Void> {
                         printer.println(" *");
                         prependEmptyLine = false;
                     }
-                    printer.println(" *" + line);
+                    printer.println(" * " + line);
                 }
             }
             printer.println(" */");
@@ -484,11 +482,7 @@ public class PrettyPrintVisitor implements VoidVisitor<Void> {
         printMemberAnnotations(n.getAnnotations(), arg);
         printModifiers(n.getModifiers());
         if (!n.getVariables().isEmpty()) {
-            Optional<Type> maximumCommonType = n.getMaximumCommonType();
-            maximumCommonType.ifPresent(t -> t.accept(this, arg));
-            if (!maximumCommonType.isPresent()) {
-                printer.print("???");
-            }
+            n.getMaximumCommonType().accept(this, arg);
         }
 
         printer.print(" ");
@@ -508,24 +502,25 @@ public class PrettyPrintVisitor implements VoidVisitor<Void> {
         printComment(n.getComment(), arg);
         n.getName().accept(this, arg);
 
-        n.getAncestorOfType(NodeWithVariables.class).ifPresent(ancestor -> {
-            ((NodeWithVariables<?>) ancestor).getMaximumCommonType().ifPresent(commonType -> {
+        Optional<NodeWithVariables> ancestor = n.getAncestorOfType(NodeWithVariables.class);
+        if (!ancestor.isPresent()) {
+            throw new RuntimeException("Unable to work with VariableDeclarator not owned by a NodeWithVariables");
+        }
+        Type commonType = ancestor.get().getMaximumCommonType();
 
-                final Type type = n.getType();
+        Type type = n.getType();
 
-                ArrayType arrayType = null;
+        ArrayType arrayType = null;
 
-                for (int i = commonType.getArrayLevel(); i < type.getArrayLevel(); i++) {
-                    if (arrayType == null) {
-                        arrayType = (ArrayType) type;
-                    } else {
-                        arrayType = (ArrayType) arrayType.getComponentType();
-                    }
-                    printAnnotations(arrayType.getAnnotations(), true, arg);
-                    printer.print("[]");
-                }
-            });
-        });
+        for (int i = commonType.getArrayLevel(); i < type.getArrayLevel(); i++) {
+            if (arrayType == null) {
+                arrayType = (ArrayType) type;
+            } else {
+                arrayType = (ArrayType) arrayType.getComponentType();
+            }
+            printAnnotations(arrayType.getAnnotations(), true, arg);
+            printer.print("[]");
+        }
 
         if (n.getInitializer().isPresent()) {
             printer.print(" = ");
@@ -556,13 +551,6 @@ public class PrettyPrintVisitor implements VoidVisitor<Void> {
         printComment(n.getComment(), arg);
         printAnnotations(n.getAnnotations(), false, arg);
         printer.print("void");
-    }
-
-    @Override
-    public void visit(final VarType n, final Void arg) {
-        printComment(n.getComment(), arg);
-        printAnnotations(n.getAnnotations(), false, arg);
-        printer.print("var");
     }
 
     @Override
@@ -925,7 +913,7 @@ public class PrettyPrintVisitor implements VoidVisitor<Void> {
         printModifiers(n.getModifiers());
 
         if (!n.getVariables().isEmpty()) {
-            n.getMaximumCommonType().ifPresent(t -> t.accept(this, arg));
+            n.getMaximumCommonType().accept(this, arg);
         }
         printer.print(" ");
 
@@ -1074,11 +1062,7 @@ public class PrettyPrintVisitor implements VoidVisitor<Void> {
         printer.println(" {");
         printer.indent();
         if (n.getEntries().isNonEmpty()) {
-            final boolean alignVertically =
-                    // Either we hit the constant amount limit in the configurations, or...
-                    n.getEntries().size() > configuration.getMaxEnumConstantsToAlignHorizontally() ||
-                            // any of the constants has a comment.
-                            n.getEntries().stream().anyMatch(e -> e.getComment().isPresent());
+            boolean alignVertically = n.getEntries().size() > configuration.getMaxEnumConstantsToAlignHorizontally();
             printer.println();
             for (final Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
                 final EnumConstantDeclaration e = i.next();

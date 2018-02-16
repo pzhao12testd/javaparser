@@ -44,33 +44,24 @@ public class FieldDeclarationTransformationsTest extends AbstractLexicalPreservi
     // Modifiers
 
     @Test
-    public void addingModifiers() {
+    public void addingModifiers() throws IOException {
         FieldDeclaration it = consider("int A;");
         it.setModifiers(EnumSet.of(Modifier.PUBLIC));
         assertTransformedToString("public int A;", it);
     }
 
     @Test
-    public void removingModifiers() {
+    public void removingModifiers() throws IOException {
         FieldDeclaration it = consider("public int A;");
         it.setModifiers(EnumSet.noneOf(Modifier.class));
         assertTransformedToString("int A;", it);
     }
 
     @Test
-    public void replacingModifiers() {
+    public void replacingModifiers() throws IOException {
         FieldDeclaration it = consider("int A;");
         it.setModifiers(EnumSet.of(Modifier.PROTECTED));
         assertTransformedToString("protected int A;", it);
     }
 
-    @Test
-    public void changingTypes() {
-        FieldDeclaration it = consider("int a, b;");
-        assertTransformedToString("int a, b;", it);
-        it.getVariable(0).setType("Xyz");
-        assertTransformedToString(" a, b;", it);
-        it.getVariable(1).setType("Xyz");
-        assertTransformedToString("Xyz a, b;", it);
-    }
 }
